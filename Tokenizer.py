@@ -1,10 +1,7 @@
 import re
 import xml.etree.ElementTree as ET
 """
-TO Do later
-    -Last character in each line is not being read
-    -String are read as identifiers
-        -Check for quotes required
+
 """
 class Tokenizer:
     classification = ["symbol", "keyword", "identifier", "integerConstant", "stringConstant"]
@@ -60,9 +57,11 @@ class Tokenizer:
 
     def ignoreComments(self):
         # Ignore comments
+        self.ignoreSpaces()
         while self.currentChar == "/" and (self.file.checkNext() == "/"):
             self.file.ignoreLine()
             self.currentChar = self.file.readNext()
+        self.ignoreSpaces()
 
     def getToken(self):
         """
@@ -77,10 +76,10 @@ class Tokenizer:
             self.done = True
             return
 
-        self.ignoreSpaces()
+        self.ignoreComments()
+        self.ignoreComments()
         self.ignoreComments()
 
-        self.ignoreSpaces()
 
         # Check multiple line comments
         while self.currentChar == "/" and (self.file.checkNext() == "*"):
@@ -103,6 +102,7 @@ class Tokenizer:
             if self.currentToken.startswith("\""):
                 if self.file.checkNext() == "\"":
                     self.currentToken = self.currentToken + self.file.readNext()
+                    self.tokens.append(self.currentToken)
                     return
 
             # Check for space
@@ -119,6 +119,12 @@ class Tokenizer:
             elif self.currentToken in self.reservedWords:
                 self.tokens.append(self.currentToken)
                 return
+
+            # Check for booleans
+            elif self.currentToken in self.boolConst:
+                self.tokens.append(self.currentToken)
+                return
+
 
             self.currentChar = self.file.readNext()
 
@@ -162,6 +168,10 @@ class Tokenizer:
             #stringConstant
             elif re.search(self.strConst, token):
                 self.formatDict[token] = "stringConstant"
+
+            # stringConstant
+            elif token in self.boolConst:
+                self.formatDict[token] = "booleanConstant"
 
 
     def printFormatted(self):
